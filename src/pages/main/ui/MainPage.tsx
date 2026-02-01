@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { TiWeatherPartlySunny } from "react-icons/ti";
 import { HiOutlineLocationMarker } from "react-icons/hi";
@@ -12,6 +12,8 @@ import { FavoriteCard } from "@/widgets/favorites";
 import { formatTemp } from "@/shared/lib/utils";
 import { getCurrentLocation } from "@/shared/lib/geolocation";
 import { getWeatherEmoji } from "@/shared/lib/weatherBackground";
+import { searchKoreaDistricts, getCoordinatesByDistrict } from "@/shared/lib/districtSearch";
+import type { SearchResult } from "@/shared/lib/districtSearch";
 import { useCurrentWeather, useTodayMinMaxTemp } from "@/entities/weather/model";
 import { useFavorites } from "@/entities/favorite/model";
 import type { Location } from "@/shared/types";
@@ -20,6 +22,8 @@ import { DEFAULT_LOCATION } from "@/shared/constants";
 export function MainPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [showResults, setShowResults] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
 
@@ -90,6 +94,63 @@ export function MainPage() {
 
   const isLoading = isLoadingLocation || isLoadingWeather;
 
+  // 디바운스된 검색 함수
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  
+  const performSearch = useCallback((query: string) => {
+    if (query.trim().length > 0) {
+      searchKoreaDistricts(query, 10).then((results) => {
+        setSearchResults(results);
+        setShowResults(true);
+      });
+    } else {
+      setSearchResults([]);
+      setShowResults(false);
+    }
+  }, []);
+
+  // 검색어 변경 시 디바운스 적용
+  useEffect(() => {
+    // 이전 타이머 클리어
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // 300ms 후에 검색 실행
+    searchTimeoutRef.current = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 300);
+
+    // 클린업
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, performSearch]);
+
+  // 검색 결과 클릭 핸들러
+  const handleSearchResultClick = async (result: SearchResult) => {
+    const coordinates = await getCoordinatesByDistrict(result.city);
+    
+    if (coordinates) {
+      // 상세 페이지로 이동
+      navigate('/detail/search', {
+        state: {
+          location: {
+            lat: coordinates.lat,
+            lon: coordinates.lon,
+            name: result.displayName,
+          }
+        }
+      });
+      setSearchQuery('');
+      setShowResults(false);
+    } else {
+      alert('해당 지역의 좌표를 찾을 수 없습니다.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-300 to-blue-200 p-6">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -108,12 +169,41 @@ export function MainPage() {
         </div>
 
         {/* 검색바 */}
-        <Input
-          type="text"
-          placeholder="도시 검색 (예: 서울, 부산, Jeju)"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder="도시 검색 (예: 서울, 부산, 강남구)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => searchResults.length > 0 && setShowResults(true)}
+            onBlur={() => {
+              // blur 시 약간의 딜레이를 줘서 검색 결과 클릭이 가능하도록
+              setTimeout(() => setShowResults(false), 200);
+            }}
+          />
+          
+          {/* 검색 결과 */}
+          {showResults && searchResults.length > 0 && (
+            <Card className="absolute top-full mt-2 w-full max-h-80 overflow-y-auto z-10">
+              {searchResults.map((result, index) => (
+                <div
+                  key={index}
+                  className="p-4 hover:bg-white/10 cursor-pointer transition-colors border-b border-white/10 last:border-b-0"
+                  onClick={() => handleSearchResultClick(result)}
+                >
+                  <p className="text-white font-medium">{result.displayName}</p>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {/* 검색 결과 없음 */}
+          {showResults && searchQuery && searchResults.length === 0 && (
+            <Card className="absolute top-full mt-2 w-full p-4 z-10">
+              <p className="text-white/70 text-center">해당 장소의 정보가 제공되지 않습니다.</p>
+            </Card>
+          )}
+        </div>
 
         {/* 현재 위치 */}
         <div>
