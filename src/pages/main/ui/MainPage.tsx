@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { TiWeatherPartlySunny } from "react-icons/ti";
 import { HiOutlineLocationMarker } from "react-icons/hi";
 import { AiOutlineStar, AiFillStar } from "react-icons/ai";
@@ -17,6 +18,7 @@ import type { Location } from "@/shared/types";
 import { DEFAULT_LOCATION } from "@/shared/constants";
 
 export function MainPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
@@ -120,7 +122,15 @@ export function MainPage() {
             <h2 className="text-2xl font-bold text-white">현재 위치</h2>
           </div>
 
-          <Card className="p-8">
+          <Card className="p-8 cursor-pointer hover:bg-white/10 hover:scale-[1.02] transition-all duration-200" onClick={() => {
+            if (currentLocation) {
+              navigate('/detail/current', { 
+                state: { 
+                  location: currentLocation 
+                } 
+              });
+            }
+          }}>
             {isLoading ? (
               <>
                 <div className="flex items-start justify-between mb-8">
@@ -167,7 +177,11 @@ export function MainPage() {
                       isCurrentLocationFavorite ? 'text-yellow-400' : 'text-white/50'
                     }`}
                     style={{ filter: 'drop-shadow(0 0 2px rgba(0, 0, 0, 0.5))' }}
-                    onClick={handleToggleCurrentLocationFavorite}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleToggleCurrentLocationFavorite();
+                    }}
                   >
                     {isCurrentLocationFavorite ? (
                       <AiFillStar />
