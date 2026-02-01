@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { TiWeatherPartlySunny } from "react-icons/ti";
 import { HiOutlineLocationMarker } from "react-icons/hi";
 import { AiOutlineStar, AiFillStar } from "react-icons/ai";
 import { MdRefresh } from "react-icons/md";
@@ -11,7 +10,7 @@ import { Skeleton } from "@/shared/ui/Skeleton";
 import { FavoriteCard } from "@/widgets/favorites";
 import { formatTemp } from "@/shared/lib/utils";
 import { getCurrentLocation } from "@/shared/lib/geolocation";
-import { getWeatherEmoji } from "@/shared/lib/weatherBackground";
+import { getWeatherEmoji, getWeatherDescription } from "@/shared/lib/weatherBackground";
 import { searchKoreaDistricts } from "@/shared/lib/districtSearch";
 import type { SearchResult } from "@/shared/lib/districtSearch";
 import { getCoordsFromAddress } from "@/shared/lib/kakaoGeocoding";
@@ -153,10 +152,11 @@ export function MainPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <TiWeatherPartlySunny className="text-5xl text-white" />
-            <h1 className="text-4xl font-bold text-white">날씨</h1>
-          </div>
+          <img
+            src="/logo.png"
+            alt="REAL TEETH"
+            className="h-9 object-contain"
+          />
           <button
             className="text-white text-3xl hover:rotate-180 transition-transform duration-500"
             onClick={() => window.location.reload()}
@@ -288,7 +288,7 @@ export function MainPage() {
                       {formatTemp(weatherData.main.temp)}
                     </div>
                     <div className="text-2xl text-white/90 mt-2">
-                      {weatherData.weather[0]?.description || "맑음"}
+                      {getWeatherDescription(weatherData.weather[0]?.icon || "")}
                     </div>
                   </div>
                 </div>

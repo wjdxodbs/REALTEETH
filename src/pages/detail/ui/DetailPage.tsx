@@ -14,7 +14,7 @@ import {
 import { Card } from "@/shared/ui/Card";
 import { Spinner } from "@/shared/ui/Spinner";
 import { formatTemp } from "@/shared/lib/utils";
-import { getWeatherEmoji } from "@/shared/lib/weatherBackground";
+import { getWeatherEmoji, getWeatherDescription } from "@/shared/lib/weatherBackground";
 import {
   useCurrentWeather,
   useTodayMinMaxTemp,
@@ -168,7 +168,7 @@ export function DetailPage() {
               </div>
               {/* 날씨 설명 (흐림 등) */}
               <div className="text-2xl text-white/90 mb-8">
-                {weatherData.weather[0]?.description || "맑음"}
+                {getWeatherDescription(weatherData.weather[0]?.icon || "")}
               </div>
               {/* 당일 최저 / 최고 기온 (화살표 아이콘, 하단 한 줄) */}
               <div className="flex items-center justify-center gap-8 text-white/90 w-full pt-6 border-t border-white/20">
