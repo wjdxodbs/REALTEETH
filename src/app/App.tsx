@@ -20,7 +20,7 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MainPage />} />
-          <Route path="/detail/:locationId" element={<DetailPage />} />
+          <Route path="/detail" element={<DetailPage />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

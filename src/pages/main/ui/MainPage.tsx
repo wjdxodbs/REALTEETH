@@ -12,8 +12,9 @@ import { FavoriteCard } from "@/widgets/favorites";
 import { formatTemp } from "@/shared/lib/utils";
 import { getCurrentLocation } from "@/shared/lib/geolocation";
 import { getWeatherEmoji } from "@/shared/lib/weatherBackground";
-import { searchKoreaDistricts, getCoordinatesByDistrict } from "@/shared/lib/districtSearch";
+import { searchKoreaDistricts } from "@/shared/lib/districtSearch";
 import type { SearchResult } from "@/shared/lib/districtSearch";
+import { getCoordsFromAddress } from "@/shared/lib/kakaoGeocoding";
 import { useCurrentWeather, useTodayMinMaxTemp } from "@/entities/weather/model";
 import { useFavorites } from "@/entities/favorite/model";
 import type { Location } from "@/shared/types";
@@ -28,7 +29,7 @@ export function MainPage() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
 
   // 즐겨찾기 관리
-  const { favorites, count, maxCount, addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const { favorites, count, maxCount, addFavorite, removeFavorite, updateFavoriteName, isFavorite } = useFavorites();
 
   // 현재 위치가 즐겨찾기에 있는지 확인
   const isCurrentLocationFavorite = currentLocation
@@ -129,25 +130,21 @@ export function MainPage() {
     };
   }, [searchQuery, performSearch]);
 
-  // 검색 결과 클릭 핸들러
+  // 검색 결과 클릭 핸들러 (카카오 API로 주소 → 좌표 변환 후 상세 페이지 이동)
   const handleSearchResultClick = async (result: SearchResult) => {
-    const coordinates = await getCoordinatesByDistrict(result.city);
-    
+    const coordinates = await getCoordsFromAddress(result.displayName);
+
     if (coordinates) {
-      // 상세 페이지로 이동
-      navigate('/detail/search', {
-        state: {
-          location: {
-            lat: coordinates.lat,
-            lon: coordinates.lon,
-            name: result.displayName,
-          }
-        }
+      const params = new URLSearchParams({
+        lat: String(coordinates.lat),
+        lon: String(coordinates.lon),
+        name: result.displayName,
       });
-      setSearchQuery('');
+      navigate(`/detail?${params.toString()}`);
+      setSearchQuery("");
       setShowResults(false);
     } else {
-      alert('해당 지역의 좌표를 찾을 수 없습니다.');
+      alert("해당 지역의 좌표를 찾을 수 없습니다.");
     }
   };
 
@@ -214,11 +211,12 @@ export function MainPage() {
 
           <Card className="p-8 cursor-pointer hover:bg-white/10 hover:scale-[1.02] transition-all duration-200" onClick={() => {
             if (currentLocation) {
-              navigate('/detail/current', { 
-                state: { 
-                  location: currentLocation 
-                } 
+              const params = new URLSearchParams({
+                lat: String(currentLocation.lat),
+                lon: String(currentLocation.lon),
+                name: currentLocation.name,
               });
+              navigate(`/detail?${params.toString()}`);
             }
           }}>
             {isLoading ? (
@@ -333,6 +331,7 @@ export function MainPage() {
                   key={favorite.id}
                   favorite={favorite}
                   onRemove={removeFavorite}
+                  onUpdateName={updateFavoriteName}
                 />
               ))}
             </div>
